@@ -1,0 +1,245 @@
+version: '3.8'
+
+services:
+  # Go Services
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./api-gateway:/app
+    environment:
+      - IDENTITY_SERVICE_URL=http://identity-service:8081
+      - PRODUCT_SERVICE_URL=http://product-service:8082
+      - CART_SERVICE_URL=http://cart-service:8083
+      - ORDER_SERVICE_URL=http://order-service:8084
+    depends_on:
+      - identity-service
+      - product-service
+      - cart-service
+      - order-service
+    networks:
+      - eshop-network
+
+  identity-service:
+    build:
+      context: ./identity-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./identity-service:/app
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=identity_db
+      - JWT_SECRET=${JWT_SECRET:-default_secret_change_me}
+    depends_on:
+      - postgres
+    networks:
+      - eshop-network
+
+  product-service:
+    build:
+      context: ./product-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./product-service:/app
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/product_db
+    depends_on:
+      - mongo
+    networks:
+      - eshop-network
+
+  cart-service:
+    build:
+      context: ./cart-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8083:8083"
+    volumes:
+      - ./cart-service:/app
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+    networks:
+      - eshop-network
+
+  # Rust Services
+  order-service-rust:
+    build:
+      context: ./order-service-rust
+      dockerfile: Dockerfile
+    ports:
+      - "8087:8087"
+    volumes:
+      - ./order-service-rust:/app
+    environment:
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8087
+      - LOG_LEVEL=info
+      - PRODUCT_SERVICE_URL=http://product-service:8082
+      - PAYMENT_SERVICE_URL=http://payment-service:8085
+      - INVENTORY_SERVICE_URL=http://inventory-service:8086
+    depends_on:
+      - postgres
+      - product-service
+      - payment-service
+      - inventory-service
+    networks:
+      - eshop-network
+
+  # Go Order Service (legacy)
+  order-service:
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8084:8084"
+    volumes:
+      - ./order-service:/app
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/order_db
+      - PRODUCT_SERVICE_URL=http://product-service:8082
+      - PAYMENT_SERVICE_URL=http://payment-service:8085
+      - INVENTORY_SERVICE_URL=http://inventory-service:8086
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      - postgres
+      - nats
+    networks:
+      - eshop-network
+
+  payment-service:
+    build:
+      context: ./payment-service
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8085"
+    volumes:
+      - ./payment-service:/app
+    environment:
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8085
+      - LOG_LEVEL=info
+      - PAYMENT_GATEWAY_URL=https://api.example.com/payments
+      - PAYMENT_GATEWAY_API_KEY=test_api_key
+    depends_on:
+      - postgres
+    networks:
+      - eshop-network
+
+  inventory-service:
+    build:
+      context: ./inventory-service
+      dockerfile: Dockerfile
+    ports:
+      - "8086:8086"
+    volumes:
+      - ./inventory-service:/app
+    environment:
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8086
+      - LOG_LEVEL=info
+    depends_on:
+      - postgres
+    networks:
+      - eshop-network
+
+  # Databases
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_MULTIPLE_DATABASES=identity_db,order_db,payment_db,inventory_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-postgres.sh:/docker-entrypoint-initdb.d/init-postgres.sh
+    ports:
+      - "5432:5432"
+    networks:
+      - eshop-network
+
+  mongo:
+    image: mongo:6
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - eshop-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - eshop-network
+
+  # Message Broker
+  nats:
+    image: nats:2-alpine
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    networks:
+      - eshop-network
+
+  # Observability
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - eshop-network
+
+  grafana:
+    image: grafana/grafana:10.0.3
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - eshop-network
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.47
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"
+      - "14268:14268"
+      - "14250:14250"
+      - "9411:9411"
+    networks:
+      - eshop-network
+
+networks:
+  eshop-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  mongo_data:
+  prometheus_data:
+  grafana_data:
