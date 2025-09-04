@@ -1,0 +1,14 @@
+[server]
+host = "0.0.0.0"
+port = 8085
+
+[logging]
+level = "info"
+
+[payment_gateway]
+url = "https://api.example.com/payments"
+api_key = "test_api_key"
+
+[database]
+url = "postgres://postgres:postgres@postgres:5432/payment_service"
+max_connections = 10
