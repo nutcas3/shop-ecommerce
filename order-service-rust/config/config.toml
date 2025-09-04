@@ -1,0 +1,15 @@
+[server]
+host = "0.0.0.0"
+port = 8087
+
+[logging]
+level = "info"
+
+[services]
+product_service_url = "http://product-service:8082"
+inventory_service_url = "http://inventory-service:8086"
+payment_service_url = "http://payment-service:8085"
+
+[database]
+url = "postgres://postgres:postgres@postgres:5432/order_service"
+max_connections = 10
