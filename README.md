@@ -53,6 +53,7 @@ This project implements a microservices architecture where each service is respo
 1. Clone the repository
 ```
 git clone https://github.com/nutcas3/shop-ecommerce.git
+
 cd shop-ecommerce
 ```
 
