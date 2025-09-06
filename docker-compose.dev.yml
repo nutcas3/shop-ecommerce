@@ -15,6 +15,12 @@ services:
       - PRODUCT_SERVICE_URL=http://product-service:8082
       - CART_SERVICE_URL=http://cart-service:8083
       - ORDER_SERVICE_URL=http://order-service:8084
+      # Deprecated Jaeger configuration
+      - JAEGER_AGENT_HOST=jaeger
+      - JAEGER_AGENT_PORT=6831
+      # OTLP configuration
+      - OTLP_ENDPOINT=jaeger
+      - OTLP_PORT=4317
     depends_on:
       - identity-service
       - product-service
