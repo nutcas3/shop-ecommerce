@@ -11,8 +11,13 @@ type Config struct {
 	ProductServiceURL   string `mapstructure:"PRODUCT_SERVICE_URL"`
 	CartServiceURL      string `mapstructure:"CART_SERVICE_URL"`
 	OrderServiceURL     string `mapstructure:"ORDER_SERVICE_URL"`
+	// Deprecated: Use OTLPEndpoint and OTLPPort instead
 	JaegerAgentHost     string `mapstructure:"JAEGER_AGENT_HOST"`
+	// Deprecated: Use OTLPEndpoint and OTLPPort instead
 	JaegerAgentPort     int    `mapstructure:"JAEGER_AGENT_PORT"`
+	// OTLP exporter configuration
+	OTLPEndpoint        string `mapstructure:"OTLP_ENDPOINT"`
+	OTLPPort            int    `mapstructure:"OTLP_PORT"`
 }
 
 func Load() (*Config, error) {
@@ -22,8 +27,12 @@ func Load() (*Config, error) {
 	viper.SetDefault("PRODUCT_SERVICE_URL", "http://product-service:8082")
 	viper.SetDefault("CART_SERVICE_URL", "http://cart-service:8083")
 	viper.SetDefault("ORDER_SERVICE_URL", "http://order-service:8084")
+	// For backward compatibility
 	viper.SetDefault("JAEGER_AGENT_HOST", "jaeger")
 	viper.SetDefault("JAEGER_AGENT_PORT", 6831)
+	// OTLP defaults
+	viper.SetDefault("OTLP_ENDPOINT", "jaeger")
+	viper.SetDefault("OTLP_PORT", 4317)
 
 	viper.AutomaticEnv()
 
