@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway 
+  namespace: shop-ecommerce
+spec:
+  replicas: 1 
+  selector:
+    matchLabels:
+      app: api-gateway 
+  template:   
+    metadata:
+      labels:
+        app: api-gateway
+        network: public
+    spec:
+      containers:
+        - name: api-gateway
+          image: nutcas3/shop-ecommerce-api-gateway:latest  
+          imagePullPolicy: Always  
+          ports:
+            - containerPort: 8080 
+          envFrom:
+            - configMapRef:
+                name: env-vars
+          resources:
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+            requests:
+              cpu: "400m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: shop-ecommerce
+spec:
+  selector:
+    app: api-gateway
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP

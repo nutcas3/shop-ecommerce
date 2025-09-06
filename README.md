@@ -1,4 +1,4 @@
-# eShopOnSteroids - Go & Rust Implementation
+# shop-ecommerce - Go & Rust Implementation
 
 A cloud-native online shop powered by Golang, Rust, containers, and Kubernetes.
 
