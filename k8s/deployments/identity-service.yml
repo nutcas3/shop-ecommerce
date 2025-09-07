@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-service
+  namespace: shop-ecommerce
+spec:
+  selector:
+    matchLabels:
+      app: identity-service 
+  template:  
+    metadata:
+      labels:
+        app: identity-service
+    spec:
+      containers:
+        - name: identity-service
+          image: nutcas3/shop-ecommerce-identity-service:latest  
+          imagePullPolicy: Always  
+          ports:
+            - containerPort: 8082 
+          envFrom:
+            - configMapRef:
+                name: env-vars
+            - secretRef:
+                name: env-secrets
+          resources:
+            limits:
+              cpu: "1"  
+              memory: "512Mi"
+            requests:
+              cpu: "400m"  
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-service
+  namespace: shop-ecommerce
+spec:
+  selector:
+    app: identity-service
+  ports:
+    - port: 8082
+      targetPort: 8082
+      protocol: TCP
+  type: ClusterIP
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler 
+metadata: 
+  name: identity-service
+  namespace: shop-ecommerce
+spec: 
+  scaleTargetRef: 
+    apiVersion: apps/v1 
+    kind: Deployment 
+    name: identity-service
+  minReplicas: 1
+  maxReplicas: 4
+  metrics: 
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
