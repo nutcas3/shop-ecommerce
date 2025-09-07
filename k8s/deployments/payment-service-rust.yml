@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service 
+  namespace: shop-ecommerce
+spec:
+  selector:
+    matchLabels:
+      app: payment-service 
+  template:
+    metadata:
+      labels:
+        app: payment-service
+    spec:
+      containers:
+        - name: payment-service
+          image: nutcas3/shop-ecommerce-payment-service:latest  
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8085
+          envFrom:
+            - configMapRef:
+                name: env-vars
+            - secretRef:
+                name: payment-secrets
+          env:
+            - name: SERVER_HOST
+              value: "0.0.0.0"
+            - name: SERVER_PORT
+              value: "8085"
+            - name: LOG_LEVEL
+              value: "info"
+          resources:
+            limits:
+              cpu: "1" 
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+  namespace: shop-ecommerce
+spec:
+  selector:
+    app: payment-service
+  ports:
+    - port: 8085
+      targetPort: 8085
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler 
+metadata: 
+  name: payment-service
+  namespace: shop-ecommerce
+spec: 
+  scaleTargetRef: 
+    apiVersion: apps/v1 
+    kind: Deployment 
+    name: payment-service
+  minReplicas: 1
+  maxReplicas: 4
+  metrics: 
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
