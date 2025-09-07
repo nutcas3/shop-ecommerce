@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service-rust 
+  namespace: shop-ecommerce
+spec:
+  selector:
+    matchLabels:
+      app: order-service-rust 
+  template:  
+    metadata:
+      labels:
+        app: order-service-rust
+    spec:
+      containers:
+        - name: order-service-rust
+          image: nutcas3/shop-ecommerce-order-service-rust:latest  
+          imagePullPolicy: Always 
+          ports:
+            - containerPort: 8087 
+          envFrom:
+            - configMapRef:
+                name: env-vars
+          env:
+            - name: SERVER_HOST
+              value: "0.0.0.0"
+            - name: SERVER_PORT
+              value: "8087"
+            - name: LOG_LEVEL
+              value: "info"
+            - name: PRODUCT_SERVICE_URL
+              value: "http://product-service:8082"
+            - name: PAYMENT_SERVICE_URL
+              value: "http://payment-service:8085"
+            - name: INVENTORY_SERVICE_URL
+              value: "http://inventory-service:8086"
+          resources:
+            limits:
+              cpu: "1"  
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service-rust
+  namespace: shop-ecommerce
+spec:
+  selector:
+    app: order-service-rust
+  ports:
+    - port: 8087
+      targetPort: 8087
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler 
+metadata: 
+  name: order-service-rust
+  namespace: shop-ecommerce
+spec: 
+  scaleTargetRef: 
+    apiVersion: apps/v1 
+    kind: Deployment 
+    name: order-service-rust
+  minReplicas: 1
+  maxReplicas: 4
+  metrics: 
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80

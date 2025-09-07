@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: shop-ecommerce
+spec:
+  replicas: 1 
+  selector:
+    matchLabels:
+      app: grafana  
+  template:  
+    metadata:
+      labels:
+        app: grafana
+        network: public
+    spec:
+      securityContext:
+        runAsUser: 472
+        runAsGroup: 472
+        fsGroup: 472
+      containers:
+        - name: grafana
+          image: grafana/grafana:10.1.5
+          ports:
+            - containerPort: 3000 
+          volumeMounts:
+            - mountPath: /var/lib/grafana
+              name: grafana-data
+          envFrom:
+            - configMapRef:
+                name: env-vars
+      volumes:
+        - name: grafana-data
+          persistentVolumeClaim:
+            claimName: grafana-pvc

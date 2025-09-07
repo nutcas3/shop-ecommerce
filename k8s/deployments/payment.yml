@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service 
+  namespace: shop-ecommerce
+spec:
+  selector:
+    matchLabels:
+      app: payment-service
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: payment-service
+    spec:
+      containers:
+        - name: payment-service
+          image: nutcas3/shop-ecommerce-payment-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8085
+          envFrom:
+            - configMapRef:
+                name: env-vars
+          env:
+            - name: MPESA_BUSINESS_SHORTCODE
+              valueFrom:
+                secretKeyRef:
+                  name: env-secrets
+                  key: MPESA_BUSINESS_SHORTCODE
+            - name: MPESA_CONSUMER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: env-secrets
+                  key: MPESA_CONSUMER_KEY
+            - name: MPESA_CONSUMER_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: env-secrets
+                  key: MPESA_CONSUMER_SECRET
+            - name: MPESA_PASSKEY
+              valueFrom:
+                secretKeyRef:
+                  name: env-secrets
+                  key: MPESA_PASSKEY
+            - name: STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: env-secrets
+                  key: STRIPE_SECRET_KEY
+          resources:
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+            requests:
+              cpu: "400m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+  namespace: shop-ecommerce
+spec:
+  selector:
+    app: payment-service
+  ports:
+    - port: 8085
+      targetPort: 8085
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler 
+metadata: 
+  name: payment-service
+  namespace: shop-ecommerce
+spec: 
+  scaleTargetRef: 
+    apiVersion: apps/v1 
+    kind: Deployment 
+    name: payment-service
+  minReplicas: 1
+  maxReplicas: 4
+  metrics: 
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80

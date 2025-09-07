@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+  namespace: shop-ecommerce
+spec:
+  replicas: 1 
+  selector:
+    matchLabels:
+      app: rabbitmq 
+  template: 
+    metadata:
+      labels:
+        app: rabbitmq
+        network: public
+    spec:
+      containers:
+        - name: rabbitmq
+          image: masstransit/rabbitmq:3
+          ports:     
+            - containerPort: 5672
+            - containerPort: 15672
+          volumeMounts:
+            - mountPath: /var/lib/rabbitmq
+              name: rabbitmq-data
+          readinessProbe:
+            exec:
+              command: ["rabbitmqctl", "status"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+      volumes:
+        - name: rabbitmq-data
+          persistentVolumeClaim:
+            claimName: rabbitmq-pvc
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: shop-ecommerce
+spec:
+  type: ClusterIP 
+  selector:
+    app: rabbitmq 
+  ports:
+    - port: 5672 
+      targetPort: 5672  

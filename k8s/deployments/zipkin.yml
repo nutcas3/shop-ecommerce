@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zipkin
+  namespace: shop-ecommerce
+spec:
+  replicas: 1 
+  selector:
+    matchLabels:
+      app: zipkin 
+  template:  
+    metadata:
+      labels:
+        app: zipkin
+        network: public
+    spec:
+      containers:
+        - name: zipkin
+          image: openzipkin/zipkin-slim:2.24.2
+          ports:
+            - containerPort: 9411 
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: zipkin
+  namespace: shop-ecommerce
+spec:
+  type: ClusterIP 
+  selector:
+    app: zipkin  
+  ports:
+    - port: 9411 
+      targetPort: 9411 

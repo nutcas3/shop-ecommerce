@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cart-db
+  namespace: shop-ecommerce
+spec:
+  selector:
+    matchLabels:
+      app: cart-db 
+  replicas: 1 
+  template: 
+    metadata:
+      labels:
+        app: cart-db
+    spec:
+      containers:
+        - name: cart-db
+          image: redis:7.2.1
+          ports: 
+            - containerPort: 6379
+          volumeMounts: 
+            - name: cart-db
+              mountPath: /data
+          readinessProbe: 
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+      volumes:
+        - name: cart-db
+          persistentVolumeClaim:
+            claimName: cart-db-pvc
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: cart-db
+  namespace: shop-ecommerce
+spec:
+  type: ClusterIP 
+  selector:
+    app: cart-db  
+  ports:
+    - port: 6379 
+      targetPort: 6379

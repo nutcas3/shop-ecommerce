@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-db
+  namespace: shop-ecommerce
+spec:
+  selector:
+    matchLabels:
+      app: identity-db  
+  replicas: 1 
+  template:
+    metadata:
+      labels:
+        app: identity-db
+    spec:
+      containers:
+        - name: identity-db
+          image: bitnami/postgresql:15.4.0
+          ports:  
+            - containerPort: 5432
+          volumeMounts: 
+            - name: identity-db
+              mountPath: /var/lib/postgresql/data
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: env-secrets
+                  key: IDENTITY_DB_USERNAME
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: env-secrets
+                  key: IDENTITY_DB_PASSWORD
+            - name: POSTGRES_DB
+              value: identity
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          readinessProbe: 
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+      volumes:
+        - name: identity-db
+          persistentVolumeClaim:
+            claimName: identity-db-pvc
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-db
+  namespace: shop-ecommerce
+spec:
+  type: ClusterIP 
+  selector:
+    app: identity-db  
+  ports:
+    - port: 5432 
+      targetPort: 5432  

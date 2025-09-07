@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-service 
+  namespace: shop-ecommerce
+spec:
+  selector:
+    matchLabels:
+      app: inventory-service 
+  template: 
+    metadata:
+      labels:
+        app: inventory-service
+    spec:
+      containers:
+        - name: inventory-service
+          image: nutcas3/shop-ecommerce-inventory-service:latest  
+          imagePullPolicy: Always   
+          ports:
+            - containerPort: 8086 
+          envFrom:
+            - configMapRef:
+                name: env-vars
+          env:
+            - name: SERVER_HOST
+              value: "0.0.0.0"
+            - name: SERVER_PORT
+              value: "8086"
+            - name: LOG_LEVEL
+              value: "info"
+          resources:
+            limits:
+              cpu: "1" 
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-service
+  namespace: shop-ecommerce
+spec:
+  selector:
+    app: inventory-service
+  ports:
+    - port: 8086
+      targetPort: 8086
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler 
+metadata: 
+  name: inventory-service
+  namespace: shop-ecommerce
+spec: 
+  scaleTargetRef: 
+    apiVersion: apps/v1 
+    kind: Deployment 
+    name: inventory-service
+  minReplicas: 1
+  maxReplicas: 4
+  metrics: 
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
