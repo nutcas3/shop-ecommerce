@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-db
+  namespace: shop-ecommerce
+spec:
+  selector:
+    matchLabels:
+      app: order-db   
+  replicas: 1
+  template: 
+    metadata:
+      labels:
+        app: order-db
+    spec:
+      containers:
+        - name: order-db
+          image: postgres:16.0
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: order-db
+              mountPath: /var/lib/postgresql/data
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: env-secrets
+                  key: ORDER_DB_USERNAME
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: env-secrets
+                  key: ORDER_DB_PASSWORD
+            - name: POSTGRES_DB
+              value: order
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          readinessProbe: 
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+      volumes:
+        - name: order-db
+          persistentVolumeClaim:
+            claimName: order-db-pvc
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-db
+  namespace: shop-ecommerce
+spec:
+  type: ClusterIP 
+  selector:
+    app: order-db 
+  ports:
+    - port: 5432  
+      targetPort: 5432   
