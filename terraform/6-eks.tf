@@ -1,0 +1,43 @@
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "~> 19.0"
+
+  vpc_id = aws_vpc.shop-ecommerce-vpc.id
+  subnet_ids = [
+    aws_subnet.private-us-east-1a.id,
+    aws_subnet.private-us-east-1b.id
+  ]
+
+  cluster_name                   = "shop-ecommerce"
+  cluster_version                = "1.29"
+  cluster_endpoint_public_access = true
+  cluster_addons = {
+    coredns = {
+      most_recent = true
+    }
+    kube-proxy = {
+      most_recent = true
+    }
+    vpc-cni = {
+      most_recent = true
+    }
+    aws-ebs-csi-driver = { 
+      most_recent = true
+    }
+  }
+
+  eks_managed_node_groups = {
+    default = {
+      min_size     = 1
+      max_size     = 1
+      desired_size = 1
+
+      instance_types = ["t3.xlarge"] 
+      capacity_type  = "ON_DEMAND"
+
+      iam_role_additional_policies = {
+        AmazonEBSCSIDriverPolicy = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+      }
+    }
+  }
+}
